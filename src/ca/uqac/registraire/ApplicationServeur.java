@@ -1,10 +1,39 @@
 package ca.uqac.registraire;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+
 public class ApplicationServeur {
+
+    private PrintWriter sortieWriter;
+    private ServerSocket serverSocket;
+    private String sourcePath;
+    private String classPath;
+
+    private Object objectToSendBack = null;
+
+    private HashMap<String, Object> objectsCreated = new HashMap<>();
+
+    private LinkedList<Class> classList = new LinkedList<>();
+
     /**
      * prend le numéro de port, crée un SocketServer sur le port
      */
-    public ApplicationServeur(int port) {
+    public ApplicationServeur(int port) throws IOException {
+        serverSocket = new ServerSocket(port);
     }
 
     /**
@@ -13,6 +42,34 @@ public class ApplicationServeur {
      * le client, et appellera traiterCommande(Commande uneCommande)     
      */
     public void aVosOrdres() {
+        Object clientObject;
+        try {
+
+
+            while (true) {
+                Socket connectionSocket = serverSocket.accept();
+
+                ObjectInputStream inFromClient = new ObjectInputStream(connectionSocket.getInputStream());
+
+                ObjectOutputStream outToClient = new ObjectOutputStream(connectionSocket.getOutputStream());
+                clientObject = inFromClient.readObject();
+                Commande commande = (Commande) clientObject;
+                traiteCommande(commande);
+
+                if (objectToSendBack != null) {
+                    outToClient.writeObject(objectToSendBack);
+                    objectToSendBack = null;
+                } else {
+                    outToClient.writeObject("Le serveur ne renvoie rien pour cette commande");
+                }
+
+                outToClient.flush();
+                connectionSocket.close();
+
+            }
+        } catch (Exception ex) {
+            sortieWriter.println("ERROR: " + ex.getMessage());
+        }
     }
 
     /**
@@ -20,6 +77,60 @@ public class ApplicationServeur {
      * elle appelle la méthode spécialisée     
      */
     public void traiteCommande(Commande uneCommande) {
+        switch (uneCommande.getCommandType()) {
+            case COMPILATION:
+                traiterCompilation(sourcePath);
+                break;
+            case CHARGEMENT:
+                traiterChargement(uneCommande.getAttributes().get("nom_qualifié_de_classe"));
+                break;
+            case CREATION:
+                Class classACreer = getClass();
+                traiterCreation(classACreer, uneCommande.getAttributes().get("identificateur"));
+                break;
+            case ECRITURE:
+                Object objectToWrite = objectsCreated.get(uneCommande.getAttributes().get("identificateur"));
+
+                if (objectToWrite != null) {
+                    traiterEcriture(objectToWrite, uneCommande.getAttributes().get("nom_attribut"), uneCommande.getAttributes().get("valeur"));
+                } else {
+                    sortieWriter.println("ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur");
+                    objectToSendBack = "ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur";
+                }
+                break;
+            case LECTURE:
+                Object objectToRead = objectsCreated.get(uneCommande.getAttributes().get("identificateur"));
+
+                if (objectToRead != null) {
+                    traiterLecture(objectToRead, uneCommande.getAttributes().get("nom_qualifié_de_classe"));
+                } else {
+                    sortieWriter.println("ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur");
+                    objectToSendBack = "ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur";
+                }
+                break;
+            case FONCTION:
+                Object objectToCall = objectsCreated.get(uneCommande.getAttributes().get("identificateur"));
+
+                if (objectToCall != null) {
+                    String listeParametres = uneCommande.getAttributes().get("liste_parametres");
+                    ArrayList<String> types = new ArrayList<>();
+                    ArrayList<String> valeurs = new ArrayList<>();
+
+                    if (!listeParametres.isEmpty()) {
+                        String[] parametres = listeParametres.split(",");
+                        for (String parametre : parametres) {
+                            String[] typeValeur = parametre.split(":");
+                            types.add(typeValeur[0]);
+                            valeurs.add(typeValeur[1]);
+                        }
+                    }
+                    traiterAppel(objectToCall, uneCommande.getAttributes().get("nom_fonction"), types.toArray(new String[0]), valeurs.toArray(new String[0]));
+                } else {
+                    sortieWriter.println("ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur");
+                    objectToSendBack = "ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur";
+                }
+                break;
+        }
     }
 
     /**
@@ -27,6 +138,7 @@ public class ApplicationServeur {
      * socket     
      */
     public void traiterLecture(Object pointeurObjet, String attribut) {
+        System.out.println("traiterLecture");
     }
 
     /**
@@ -34,6 +146,7 @@ public class ApplicationServeur {
      * s’est faite correctement.     
      */
     public void traiterEcriture(Object pointeurObjet, String attribut, Object valeur) {
+        System.out.println("ecriture");
     }
 
     /**
@@ -41,6 +154,7 @@ public class ApplicationServeur {
      * s’est faite correctement.     
      */
     public void traiterCreation(Class classeDeLobjet, String identificateur) {
+        System.out.println("creation");
     }
 
     /**
@@ -48,6 +162,7 @@ public class ApplicationServeur {
      * s’est faite correctement.     
      */
     public void traiterChargement(String nomQualifie) {
+        System.out.println("chargement");
     }
 
     /**
@@ -56,6 +171,7 @@ public class ApplicationServeur {
      * relatif par rapport au chemin des fichiers sources.     
      */
     public void traiterCompilation(String cheminRelatifFichierSource) {
+        System.out.println("compilation");
     }
 
     /**
@@ -66,7 +182,9 @@ public class ApplicationServeur {
      * passé)     
      */
     public void traiterAppel(Object pointeurObjet, String nomFonction, String[] types,
-                             Object[] valeurs) {}
+                             Object[] valeurs) {
+        System.out.println("appel");
+    }
 
 
     /**
@@ -77,5 +195,46 @@ public class ApplicationServeur {
      *      
      */
     public static void main(String[] args) {
+        try {
+            if (args.length != 4) {
+                throw new IllegalArgumentException("Veuillez indiquer 4 arguments");
+            } else {
+                ApplicationServeur applicationServeur = new ApplicationServeur(new Integer(args[0]));
+                applicationServeur.sortieWriter = new PrintWriter(args[3]);
+                applicationServeur.sortieWriter.println("Le serveur est prêt");
+                applicationServeur.sourcePath = args[1];
+                applicationServeur.classPath = args[2];
+
+                if (!Files.isDirectory(Paths.get(applicationServeur.sourcePath))) {
+                    throw new IOException("Le chemin source n'est pas un dossier ou n'existe pas");
+                }
+
+                if (!Files.isDirectory(Paths.get(applicationServeur.classPath))) {
+                    throw new IOException("Le chemin classes n'est pas un dossier ou n'existe pas");
+                }
+
+                Runtime.getRuntime().addShutdownHook(new Thread() {
+                    @Override
+                    public void run() {
+                        System.out.println("SERVEUR: interruption recue, fermeture du serveur...");
+                        try {
+                            applicationServeur.sortieWriter.close();
+                            applicationServeur.serverSocket.close();
+                        } catch (IOException e) {
+                            System.err.println("Erreur lors de la fermeture du socket");
+                        }
+                    }
+                });
+                applicationServeur.aVosOrdres();
+
+            }
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+            System.out.println("Usage:\n" +
+                    "\tjava -jar ApplicationServer.jar [port number] [source folder] [class folder] [output filename]\n" +
+                    "\tex: java -jar ApplicationServer.jar 4242 ./sources/ ./classes sortieServeur.txt");
+        }
+
+
     }
 }

@@ -1,13 +1,17 @@
 package ca.uqac.registraire;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.net.Socket;
 
 public class ApplicationClient {
 
@@ -54,6 +58,21 @@ public class ApplicationClient {
      * décrit plus haut, qui seront appelées par  traiteCommande(Commande uneCommande)
      */
     public Object traiteCommande(Commande uneCommande) {
+
+        try{
+            Socket clientSocket = new Socket(serverHostname, portNumber);
+            ObjectOutputStream outToServer = new ObjectOutputStream(clientSocket.getOutputStream());
+            BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            outToServer.writeObject(uneCommande);
+            String serverResponse = inFromServer.readLine();
+            sortieWriter.println(serverResponse);
+
+            outToServer.flush();
+            outToServer.close();
+            clientSocket.close();
+        }catch (IOException ex){
+            System.err.println(ex.getMessage());
+        }
         return new Object();
     }
 
@@ -85,9 +104,9 @@ public class ApplicationClient {
                 throw new IllegalArgumentException("Veuillez indiquer 4 arguments");
             } else {
                 ApplicationClient applicationClient = new ApplicationClient();
-                applicationClient.initialise(args[2], args[3]);
                 applicationClient.serverHostname = InetAddress.getByName(args[0]);
                 applicationClient.portNumber = new Integer(args[1]);
+                applicationClient.initialise(args[2], args[3]);
                 applicationClient.sortieWriter.close();
             }
         } catch (Exception ex) {

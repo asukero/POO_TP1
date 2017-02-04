@@ -62,4 +62,12 @@ public class Commande implements Serializable {
             throw new CommandTypeException("La ligne " + commandLine + "ne contient pas assez d'arguments");
         }
     }
+
+    public HashMap<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public CommandType getCommandType() {
+        return commandType;
+    }
 }
