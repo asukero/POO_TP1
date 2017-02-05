@@ -53,7 +53,8 @@ public class Commande implements Serializable {
                     break;
                 case "lecture":
                     commandType = CommandType.LECTURE;
-                    attributes.put("nom_qualifié_de_classe", args[1]);
+                    attributes.put("identificateur", args[1]);
+                    attributes.put("nom_attribut", args[2]);
                     break;
                 default:
                     throw new CommandTypeException("Type de commande non reconnu");

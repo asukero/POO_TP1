@@ -14,6 +14,8 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -120,7 +122,7 @@ public class ApplicationServeur {
                 Object objectToRead = objectsCreated.get(uneCommande.getAttributes().get("identificateur"));
 
                 if (objectToRead != null) {
-                    traiterLecture(objectToRead, uneCommande.getAttributes().get("nom_qualifié_de_classe"));
+                    traiterLecture(objectToRead, uneCommande.getAttributes().get("nom_attribut"));
                 } else {
                     objectToSendBack = "ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur";
                     sortieWriter.println(objectToSendBack);
@@ -161,7 +163,17 @@ public class ApplicationServeur {
      * socket     
      */
     public void traiterLecture(Object pointeurObjet, String attribut) {
-        System.out.println("traiterLecture");
+        try {
+            attribut = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
+            Method getter = pointeurObjet.getClass().getMethod("get" + attribut);
+            Object valeurRetour = getter.invoke(pointeurObjet);
+            objectToSendBack = "OK: La methode get" + attribut + "() de l'objet a été correctement appelée.\n" +
+                    "    La valeur retournée est : " + valeurRetour.toString() + ".";
+            sortieWriter.println(objectToSendBack);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
+            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de ma methode get" + attribut + "().";
+            sortieWriter.println(objectToSendBack);
+        }
     }
 
     /**
@@ -169,7 +181,16 @@ public class ApplicationServeur {
      * s’est faite correctement.     
      */
     public void traiterEcriture(Object pointeurObjet, String attribut, Object valeur) {
-        
+        try {
+            attribut = attribut.substring(0, 1).toUpperCase() + attribut.substring(1);
+            Method setter = pointeurObjet.getClass().getMethod("set" + attribut, valeur.getClass());
+            setter.invoke(pointeurObjet, valeur);
+            objectToSendBack = "OK: La methode set" + attribut + "() de l'objet a été correctement appelée.";
+            sortieWriter.println(objectToSendBack);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
+            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de ma methode set" + attribut + "().";
+            sortieWriter.println(objectToSendBack);
+        }
     }
 
     /**
@@ -177,12 +198,12 @@ public class ApplicationServeur {
      * s’est faite correctement.     
      */
     public void traiterCreation(Class classeDeLobjet, String identificateur) {
-        try{
+        try {
             Object createdObject = classeDeLobjet.newInstance();
             objectsCreated.put(identificateur, createdObject);
             objectToSendBack = "OK: L'objet " + identificateur + " de la classe " + classeDeLobjet.getName() + " a été correctement crée.";
             sortieWriter.println(objectToSendBack);
-        }catch (InstantiationException | IllegalAccessException ex){
+        } catch (InstantiationException | IllegalAccessException ex) {
             objectToSendBack = "Erreur: Un problème est survenu lors de l'instanciation de la classe.";
             sortieWriter.println(objectToSendBack);
         }
