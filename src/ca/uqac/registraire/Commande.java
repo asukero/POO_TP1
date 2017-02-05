@@ -3,6 +3,7 @@ package ca.uqac.registraire;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Commande implements Serializable {
 
@@ -70,5 +71,14 @@ public class Commande implements Serializable {
 
     public CommandType getCommandType() {
         return commandType;
+    }
+
+    @Override
+    public String toString() {
+        String print = commandType.toString().toLowerCase() + "#";
+        for(String value : attributes.values()) {
+            print = print + value + "#";
+        }
+        return print;
     }
 }

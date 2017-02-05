@@ -23,11 +23,18 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class ApplicationServeur {
 
@@ -40,7 +47,7 @@ public class ApplicationServeur {
 
     private HashMap<String, Object> objectsCreated = new HashMap<>();
 
-    private LinkedList<Class> classList = new LinkedList<>();
+    private Set<Class> classList = new HashSet<>();
 
     private ClassLoader classLoader;
 
@@ -49,6 +56,12 @@ public class ApplicationServeur {
      */
     public ApplicationServeur(int port) throws IOException {
         serverSocket = new ServerSocket(port);
+
+        classList.addAll(Arrays.asList(new Class[]{
+                boolean.class,
+                byte[].class, char.class, double.class,
+                float.class, int.class, long.class, short.class}));
+
     }
 
     /**
@@ -83,7 +96,8 @@ public class ApplicationServeur {
 
             }
         } catch (Exception ex) {
-            sortieWriter.println("ERROR: " + ex.getMessage());
+            sortieWriter.println("ERROR: ");
+            ex.printStackTrace();
         }
     }
 
@@ -135,9 +149,9 @@ public class ApplicationServeur {
                 if (objectToCall != null) {
                     String listeParametres = uneCommande.getAttributes().get("liste_parametres");
                     ArrayList<String> types = new ArrayList<>();
-                    ArrayList<String> valeurs = new ArrayList<>();
+                    ArrayList<Object> valeurs = new ArrayList<>();
 
-                    if (!listeParametres.isEmpty()) {
+                    if (listeParametres != null) {
                         String[] parametres = listeParametres.split(",");
                         for (String parametre : parametres) {
                             String[] typeValeur = parametre.split(":");
@@ -145,11 +159,10 @@ public class ApplicationServeur {
                             valeurs.add(typeValeur[1]);
                         }
                     }
-                    traiterAppel(objectToCall, uneCommande.getAttributes().get("nom_fonction"), types.toArray(new String[0]), valeurs.toArray(new String[0]));
+                    traiterAppel(objectToCall, uneCommande.getAttributes().get("nom_fonction"), types.toArray(new String[0]), valeurs.toArray(new Object[0]));
                 } else {
                     objectToSendBack = "ERREUR: L'objet " + uneCommande.getAttributes().get("identificateur") + " n'a pas été trouvé sur le serveur";
                     sortieWriter.println(objectToSendBack);
-
                 }
                 break;
             default:
@@ -171,7 +184,7 @@ public class ApplicationServeur {
                     "    La valeur retournée est : " + valeurRetour.toString() + ".";
             sortieWriter.println(objectToSendBack);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
-            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de ma methode get" + attribut + "().";
+            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de la methode get" + attribut + "().";
             sortieWriter.println(objectToSendBack);
         }
     }
@@ -188,7 +201,7 @@ public class ApplicationServeur {
             objectToSendBack = "OK: La methode set" + attribut + "() de l'objet a été correctement appelée.";
             sortieWriter.println(objectToSendBack);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
-            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de ma methode set" + attribut + "().";
+            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de la methode set" + attribut + "().";
             sortieWriter.println(objectToSendBack);
         }
     }
@@ -217,7 +230,7 @@ public class ApplicationServeur {
         try {
             Class classe = classLoader.loadClass(nomQualifie);
             classList.add(classe);
-            objectToSendBack = "OK: La classe " + nomQualifie + "a été correctement chargée.";
+            objectToSendBack = "OK: La classe " + nomQualifie + " a été correctement chargée.";
             sortieWriter.println(objectToSendBack);
         } catch (ClassNotFoundException ex) {
             objectToSendBack = "Erreur: La classe " + nomQualifie + " n'a pas été trouvée.";
@@ -276,7 +289,7 @@ public class ApplicationServeur {
 
         if (task.call()) {
             /** Load and execute *************************************************************************************************/
-            objectToSendBack = "Les fichiers ";
+            objectToSendBack = "OK: Les fichiers ";
             for (File file : classesToCompile) {
                 objectToSendBack = objectToSendBack + file.getPath() + " ";
             }
@@ -306,7 +319,68 @@ public class ApplicationServeur {
      */
     public void traiterAppel(Object pointeurObjet, String nomFonction, String[] types,
                              Object[] valeurs) {
-        System.out.println("appel");
+        ArrayList<Class> typesClass = new ArrayList<>();
+        try {
+            if (types.length > 0) {
+                for (int i = 0; i < types.length; i++) {
+                    String searchType = types[i];
+                    typesClass.add(classList.stream().filter(c -> c.getName().equals(searchType)).findFirst().get());
+                    String valueString = (String) valeurs[i];
+
+                    if (valueString.startsWith("ID(")) {
+                        Object valeurArg = objectsCreated.get(valueString.substring(3, valueString.length() - 1));
+                        if (valeurArg != null) {
+                            valeurs[i] = valeurArg;
+                        } else {
+                            objectToSendBack = "Erreur: L'objet avec l'identifiant " + valueString + " n'a pas été chargé.";
+                            sortieWriter.println(objectToSendBack);
+                            return;
+                        }
+
+                    } else {
+                        switch (types[i]) {
+                            case "int":
+                                valeurs[i] = Integer.parseInt((String) valeurs[i]);
+                                break;
+                            case "short":
+                                valeurs[i] = Short.parseShort((String) valeurs[i]);
+                                break;
+                            case "long":
+                                valeurs[i] = Long.parseLong((String) valeurs[i]);
+                                break;
+                            case "double":
+                                valeurs[i] = Double.parseDouble((String) valeurs[i]);
+                                break;
+                            case "char":
+                                valeurs[i] = ((String) valeurs[i]).charAt(0);
+                                break;
+                            case "byte[]":
+                                valeurs[i] = ((String) valeurs[i]).getBytes();
+                                break;
+                            case "boolean":
+                                valeurs[i] = ((String) valeurs[i]).getBytes();
+                                break;
+                            case "float":
+                                valeurs[i] = Float.parseFloat((String) valeurs[i]);
+                                break;
+                            default:
+                                throw new NumberFormatException();
+                        }
+                    }
+                }
+            }
+            Method methode = pointeurObjet.getClass().getMethod(nomFonction, typesClass.toArray(new Class[0]));
+            Object valeurRetour = methode.invoke(pointeurObjet, valeurs);
+            objectToSendBack = "OK: La methode " + nomFonction + "() de l'objet a été correctement appelée.\n";
+            if (valeurRetour != null) {
+                objectToSendBack = objectToSendBack + "\t\t\t\t\t  La valeur retournée est : " + valeurRetour.toString() + ".";
+            }
+            sortieWriter.println(objectToSendBack);
+
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | NumberFormatException ex) {
+            objectToSendBack = "Erreur: Un problème est survenu lors de l'appel de la methode " + nomFonction + "().";
+            sortieWriter.println(objectToSendBack);
+        }
     }
 
 

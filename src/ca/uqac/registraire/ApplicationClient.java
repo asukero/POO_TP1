@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -59,21 +60,24 @@ public class ApplicationClient {
      */
     public Object traiteCommande(Commande uneCommande) {
 
+        Object reponse = null;
         try{
             Socket clientSocket = new Socket(serverHostname, portNumber);
+
             ObjectOutputStream outToServer = new ObjectOutputStream(clientSocket.getOutputStream());
-            BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            ObjectInputStream inFromServer = new ObjectInputStream(clientSocket.getInputStream());
             outToServer.writeObject(uneCommande);
-            String serverResponse = inFromServer.readLine();
-            sortieWriter.println(serverResponse);
+            reponse = inFromServer.readObject();
 
             outToServer.flush();
             outToServer.close();
             clientSocket.close();
-        }catch (IOException ex){
+
+
+        }catch (IOException| ClassNotFoundException ex){
             System.err.println(ex.getMessage());
         }
-        return new Object();
+        return reponse;
     }
 
     /**
