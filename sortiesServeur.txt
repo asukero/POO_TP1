@@ -1,0 +1,4 @@
+Le serveur est prêt
+Les fichiers ./src/ca/uqac/registraire/Cours.java ./src/ca/uqac/registraire/Etudiant.java ont été correctement compilés.
+OK: La classe ca.uqac.registraire.Coursa été correctement chargée.
+OK: L'objet 8inf853 de la classe ca.uqac.registraire.Cours a été correctement crée.
