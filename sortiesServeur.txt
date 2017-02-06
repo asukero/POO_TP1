@@ -1,0 +1,38 @@
+Le serveur est prêt
+OK: Les fichiers ./src/ca/uqac/registraire/Cours.java ./src/ca/uqac/registraire/Etudiant.java ont été correctement compilés.
+OK: La classe ca.uqac.registraire.Cours a été correctement chargée.
+OK: L'objet 8inf853 de la classe ca.uqac.registraire.Cours a été correctement crée.
+OK: La methode setTitre() de l'objet a été correctement appelée.
+OK: La methode getTitre() de l'objet a été correctement appelée.
+    La valeur retournée est : Architecture des applications.
+OK: L'objet 8inf843 de la classe ca.uqac.registraire.Cours a été correctement crée.
+OK: La methode setTitre() de l'objet a été correctement appelée.
+OK: La classe ca.uqac.registraire.Etudiant a été correctement chargée.
+OK: L'objet mathilde de la classe ca.uqac.registraire.Etudiant a été correctement crée.
+OK: La methode setNom() de l'objet a été correctement appelée.
+OK: L'objet raymond de la classe ca.uqac.registraire.Etudiant a été correctement crée.
+OK: La methode setNom() de l'objet a été correctement appelée.
+OK: La methode inscrisDansCours() de l'objet a été correctement appelée.
+
+OK: La methode attributeNote() de l'objet a été correctement appelée.
+
+OK: La methode getNote() de l'objet a été correctement appelée.
+					  La valeur retournée est : 3.7.
+OK: La methode inscrisDansCours() de l'objet a été correctement appelée.
+
+OK: La methode attributeNote() de l'objet a été correctement appelée.
+
+OK: La methode getMoyenne() de l'objet a été correctement appelée.
+					  La valeur retournée est : 3.85.
+OK: La methode inscrisDansCours() de l'objet a été correctement appelée.
+
+OK: La methode inscrisDansCours() de l'objet a été correctement appelée.
+
+OK: La methode attributeNote() de l'objet a été correctement appelée.
+
+OK: La methode attributeNote() de l'objet a été correctement appelée.
+
+OK: La methode getMoyenne() de l'objet a été correctement appelée.
+					  La valeur retournée est : 3.85.
+OK: La methode toString() de l'objet a été correctement appelée.
+					  La valeur retournée est : Cours(Titre: Architecture des applications <Mathilde Boivin[3.85] = 3.7 , Raymond Sauve[2.85] = 3.0 >).

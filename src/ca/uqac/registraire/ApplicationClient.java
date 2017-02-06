@@ -34,7 +34,7 @@ public class ApplicationClient {
             }
             return null;
         } catch (IOException ex) {
-            System.out.println(ex.getMessage());
+            sortieWriter.println(ex.getMessage());
 
         } catch (CommandTypeException ex){
             sortieWriter.println(ex.getMessage());
@@ -62,20 +62,27 @@ public class ApplicationClient {
 
         Object reponse = null;
         try{
+            //Création du socket
             Socket clientSocket = new Socket(serverHostname, portNumber);
 
+            //Ouverture des flux d'entrée et de sortie du socket
             ObjectOutputStream outToServer = new ObjectOutputStream(clientSocket.getOutputStream());
             ObjectInputStream inFromServer = new ObjectInputStream(clientSocket.getInputStream());
+
+            //envoi de l'objet Commande serialisé
             outToServer.writeObject(uneCommande);
+
+            //Objet réponse du serveur
             reponse = inFromServer.readObject();
 
+            // nettoyage du flux de sortie et fermeture du socket lors que le serveur a répondu.
             outToServer.flush();
             outToServer.close();
             clientSocket.close();
 
 
         }catch (IOException| ClassNotFoundException ex){
-            System.err.println(ex.getMessage());
+            sortieWriter.println("Erreur: " + ex.getMessage());
         }
         return reponse;
     }
@@ -104,6 +111,7 @@ public class ApplicationClient {
      */
     public static void main(String[] args) {
         try {
+            // verification des arguments
             if (args.length != 4) {
                 throw new IllegalArgumentException("Veuillez indiquer 4 arguments");
             } else {

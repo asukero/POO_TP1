@@ -7,6 +7,7 @@ import java.util.Map;
 
 public class Commande implements Serializable {
 
+    //enumeration pour le type de commande
     public enum CommandType {
         COMPILATION,
         CHARGEMENT,
@@ -18,6 +19,7 @@ public class Commande implements Serializable {
 
     private CommandType commandType;
 
+    //Table de Hachage entre le type d'argument de la commande et sa valeur
     private HashMap<String, String> attributes = new HashMap<>();
 
     public Commande(String commandLine) {
